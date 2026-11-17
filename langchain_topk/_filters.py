@@ -14,6 +14,7 @@ from langchain_core.structured_query import (
     StructuredQuery,
     Visitor,
 )
+from topk_sdk.data import f64_list
 from topk_sdk.query import LogicalExpr, field, match, not_
 
 _COMPARISON_OPERATORS = {
@@ -160,14 +161,20 @@ def _translate_field(key: str, value: Any, metadata_field: str) -> Any:
     return _compare(path, "$eq", value)
 
 
-def _normalize_list(values: Sequence[Any]) -> list[Any]:
-    """Make numeric lists homogeneous: ints and floats mixed become floats."""
+def _normalize_list(values: Sequence[Any]) -> Any:
+    """Prepare an `$in` / `$nin` list for TopK.
+
+    A plain Python list of floats is sent as 32-bit floats, so values such as
+    `9.99` no longer equal the stored 64-bit value and silently match nothing.
+    Lists that contain any float are therefore sent as 64-bit floats (ints are
+    widened to float).
+    """
     items = list(values)
-    numeric = [
-        v for v in items if isinstance(v, (int, float)) and not isinstance(v, bool)
-    ]
-    if len(numeric) == len(items) and any(isinstance(v, float) for v in items):
-        return [float(v) for v in items]
+    numeric = all(
+        isinstance(v, (int, float)) and not isinstance(v, bool) for v in items
+    )
+    if numeric and any(isinstance(v, float) for v in items):
+        return f64_list([float(v) for v in items])
     return items
 
 

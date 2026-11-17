@@ -160,8 +160,14 @@ def test_translator_dates_and_no_filter() -> None:
     )
 
 
-def test_mixed_numeric_in_list_is_homogeneous() -> None:
-    assert "literal" in r(build_filter({"x": {"$in": [1, 2.5]}}, "m"))
+def test_float_in_lists_are_sent_as_f64() -> None:
+    # f32 would turn 9.99 into 9.989999771 and silently match nothing.
+    for values in ([9.99, 2.5], [9.99, 3]):
+        for op in ("$in", "$nin"):
+            assert "F64" in r(build_filter({"x": {op: values}}, "m"))
+    assert "F32" not in r(build_filter({"x": {"$in": [9.99]}}, "m"))
+    assert "F64" not in r(build_filter({"x": {"$in": [1, 2]}}, "m"))
+    assert "F64" not in r(build_filter({"x": {"$in": ["a", "b"]}}, "m"))
 
 
 def test_delete_filters_reject_text_expressions() -> None:

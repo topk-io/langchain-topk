@@ -120,6 +120,36 @@ def test_filters(semantic_store: TopKVectorStore) -> None:
     assert run(field("metadata.year") > 2014) == {"rust"}
 
 
+def test_float_filters(new_collection_name: Callable[[str], str]) -> None:
+    store = TopKVectorStore.from_texts(
+        ["cheap", "pricey", "free"],
+        metadatas=[{"price": 2.5}, {"price": 9.99}, {"price": 0}],
+        ids=["cheap", "pricey", "free"],
+        collection_name=new_collection_name("floats"),
+    )
+
+    def run(f: object) -> set[str | None]:
+        return set(ids(store.similarity_search("item", k=10, filter=f)))
+
+    # 9.99 is not exactly representable as f32; it must still match.
+    assert run({"price": {"$in": [9.99, 2.5]}}) == {"pricey", "cheap"}
+    assert run({"price": {"$in": [9.99, 3]}}) == {"pricey"}
+    assert run({"price": {"$nin": [9.99]}}) == {"cheap", "free"}
+    assert run({"price": 9.99}) == {"pricey"}
+    query, kwargs = TopKTranslator().visit_structured_query(
+        StructuredQuery(
+            query="item",
+            filter=Comparison(
+                comparator=Comparator.IN, attribute="price", value=[9.99, 2.5]
+            ),
+        )
+    )
+    assert set(ids(store.similarity_search(query, k=10, **kwargs))) == {
+        "pricey",
+        "cheap",
+    }
+
+
 def test_custom_ranking(semantic_store: TopKVectorStore) -> None:
     # Rank purely by recency among semantic matches.
     docs = semantic_store.similarity_search(
