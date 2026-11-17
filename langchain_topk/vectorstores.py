@@ -105,7 +105,7 @@ class TextIndex(str, Enum):
     """Index created on the text field of a new collection."""
 
     SEMANTIC = "semantic"
-    """`semantic_index()`: server-side embeddings and BM25 (max 4,096 chars)."""
+    """`semantic_index()`: server-side embeddings and BM25 (max 32,768 chars)."""
     KEYWORD = "keyword"
     """`keyword_index()`: BM25 only, no length cap beyond the document size."""
     NONE = "none"

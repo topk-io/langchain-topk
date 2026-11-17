@@ -223,7 +223,7 @@ semantic_store.similarity_search("famous coral reef", k=1)
 ```
 
 <Note>
-    A semantically indexed field holds at most 4,096 characters per document. Split longer documents with a [text splitter](/oss/integrations/splitters) before adding them.
+    A semantically indexed field holds at most 32,768 characters per document; longer text is rejected with a `TextTooLong` error. Retrieval works best on passages of a few thousand characters, so split long documents with a [text splitter](/oss/integrations/splitters) before adding them.
 </Note>
 
 ### Keyword search (BM25)
